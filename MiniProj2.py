@@ -10,6 +10,12 @@ import copy
 import matplotlib.pyplot as plt
 
 
+############################################
+#
+# MNIST data set functions
+#
+############################################
+
 def libsvm_scale_import(filename, limit = 0):
     """
     Read data from a libsvm .scale file. Set 'limit' to limit the import
@@ -56,8 +62,8 @@ def libsvm_scale_import(filename, limit = 0):
 
 def convert_mnist_classes_to_binary(classes):
     """
-    Given a list of integer classes, return an array where each class is
-    converted to binary. e.g., 5.0 -> [0. 1. 0. 1.]
+    Given a list of integer MNIST classes, return an array where each class is
+    converted to binary. e.g., 5 -> [0. 1. 0. 1.]
     """
     binary_classes = np.zeros((classes.shape[0], 4))
     for i in range(classes.shape[0]):
@@ -68,15 +74,147 @@ def convert_mnist_classes_to_binary(classes):
 
 
 def convert_mnist_classes_to_integer(binary_classes):
+    """
+    Given a list of binary MNIST classes, return an array where each class is
+    converted to integer. e.g., [0. 1. 0. 1.] -> 5
+    """
     classes = np.zeros((binary_classes.shape[0], 1))
     for i in range(binary_classes.shape[0]):
         bins = binary_classes[i]
-        # Not very elegant, but it works
+        # Not very elegant, but it works -- convert to integer and cap at 9
         classes[i][0] = min((bins[0] * 8) + (bins[1] * 4) + (bins[2] * 2) + bins[3], 9)
         # print(classes[i][0], binary_classes[i])
     return classes
 
 
+############################################
+#
+# Perceptron Kernel functions
+#
+############################################
+
+
+def poly_kernel(x, z, a, b, d):
+    """
+    Calculate polynomial kernel for samples x and z.
+    a, b, and d are hyperparameters.
+    """
+    return (a + (b * (np.matmul(x.T, z))) ** d)
+
+
+def train_perceptron_kernel(X, y, beta, step_limit):
+    """
+    Perceptron with a kernel. Given a 2-D set of data X (samples are rows,
+    columns features), a vector Y of classifications, a learning rate (beta),
+    and a step limit, train and return a weight vector that
+    can be used to classify the given data.
+    """
+
+    # Initialize the alpha vector
+    a = np.zeros(X.shape[0])
+
+    # Initialize y_hat
+    y_hat = np.zeros((X.shape[0], 1))
+
+    # Repeat the main loop until we have convergence or reach the
+    # iteration limit
+    steps = 0
+    converged = False
+    while(not(converged) and (steps < step_limit)):
+        print(str(steps) + ' ', end = '')
+
+        converged = True # assume converged until we determine otherwise
+
+        # For each sample in X, calculate alpha's classification error
+        # and update alpha.
+        for i in range(len(X)):
+
+            # Find current prediction based on kernel
+            predict_val = 0
+            for j in range(len(X)):
+                predict_val += a[i] * poly_kernel(X[j], X[i], 0.0, 1.0, 1.0)
+            y_hat[i][0] = 1 if (predict_val > 0) else -1
+
+            # If error on this element is > a very small value (is not
+            # effectively 0), we need to update alpha, and have not converged.
+            error = y[i][0] - y_hat[i][0]
+            if (abs(error) > 0.000001):
+                a[i] += beta * y[i][0]
+                converged = False
+        steps += 1
+
+    print()
+    # print('Final alpha = ', a, 'in', steps, 'steps; converged?', converged)
+
+    return a
+
+
+def test_perceptron_kernel(X, a):
+    y_hat = np.zeros((X.shape[0], 1))
+    for i in range(len(X)):
+        predict_val = 0
+        for j in range(len(X)):
+            predict_val += a[i] * poly_kernel(X[j], X[i], 0.0, 1.0, 1.0)
+        y_hat[i][0] = 1 if (predict_val > 0) else -1
+    # print('Y   :', y)
+    # print('Y^  :', y_hat)
+    # print('Diff:', y - y_hat)
+    return y_hat
+
+
+def mnist_perceptron_kernel(train_classes, test_classes, train_features,
+                            test_features):
+
+    binary_train_classes = convert_mnist_classes_to_binary(train_classes)
+
+    y1 = binary_train_classes[:,[0]]
+    y2 = binary_train_classes[:,[1]]
+    y3 = binary_train_classes[:,[2]]
+    y4 = binary_train_classes[:,[3]]
+
+    limit = 3
+    beta = .05
+    a1 = train_perceptron_kernel(train_features, y1, beta, limit)
+    a2 = train_perceptron_kernel(train_features, y2, beta, limit)
+    a3 = train_perceptron_kernel(train_features, y3, beta, limit)
+    a4 = train_perceptron_kernel(train_features, y4, beta, limit)
+
+    y_hat1 = test_perceptron_kernel(train_features, a1)
+    y_hat2 = test_perceptron_kernel(train_features, a2)
+    y_hat3 = test_perceptron_kernel(train_features, a3)
+    y_hat4 = test_perceptron_kernel(train_features, a4)
+
+    binary_pred_classes = np.hstack((y_hat1, y_hat2, y_hat3, y_hat4))
+    binary_pred_classes = 1.0 * (binary_pred_classes > 0.0)
+
+    # print('YHAT', binary_pred_classes)
+
+    pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
+    correct = 0
+    for i in range(test_classes.shape[0]):
+        # print(test_classes[i][0], pred_classes[i][0])
+        if (test_classes[i][0] == pred_classes[i][0]): correct += 1
+    print('Correct:', correct, '/', test_classes.shape[0])
+
+    """
+    For 1000 samples:
+    3 steps, beta .05: 26/300
+    3 steps, beta .5: 26/300
+    10 steps, beta .05: 26/300
+
+    For 10000 samples:
+    3 steps, beta .05: 302/3000
+    """
+
+
+
+
+
+############################################
+#
+# Neural Network functions
+#
+############################################
 
 def sigmoid(x):
     """
@@ -171,6 +309,21 @@ def mnist_neural_network(train_classes, test_classes, train_features,
     # Train
     xh, hy = train_neural_network(train_features, binary_train_classes, 100, 1.0, 100)
 
+
+    # print(xh)
+    # print(hy)
+
+    # Test
+    binary_pred_classes = test_neural_network(test_features, xh, hy)
+    binary_pred_classes = 1.0 * (binary_pred_classes > 0.5)
+    pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
+    # print('Testing error:')
+    # print(test_classes - pred_classes)
+    correct = 0
+    for i in range(test_classes.shape[0]):
+        if (test_classes[i][0] == pred_classes[i][0]): correct += 1
+    print('Correct:', correct, '/', test_classes.shape[0])
+
     """
     For 1000 samples:
     10 units, 10 epochs, LR 0.5: 33/300
@@ -190,25 +343,17 @@ def mnist_neural_network(train_classes, test_classes, train_features,
     100 units, 100 epochs, LR 1.0: /3000
     """
 
-    # print(xh)
-    # print(hy)
 
-    # Test
-    binary_pred_classes = test_neural_network(test_features, xh, hy)
-    binary_pred_classes = 1.0 * (binary_pred_classes > 0.5)
-    pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
-    # print('Testing error:')
-    # print(test_classes - pred_classes)
-    correct = 0
-    for i in range(test_classes.shape[0]):
-        if (test_classes[i][0] == pred_classes[i][0]): correct += 1
-    print('Correct:', correct, '/', test_classes.shape[0])
-
-
+############################################
+#
+# Run it all
+#
+############################################
 
 def main():
+
     # Load data
-    classes, features = libsvm_scale_import('data/mnist.scale', limit = 10000)
+    classes, features = libsvm_scale_import('data/mnist.scale', limit = 1000)
     split = int(len(classes) * 0.70)
     train_classes = classes[:split]
     test_classes = classes[split:]
@@ -218,9 +363,10 @@ def main():
     print('test_data =', test_features.shape, test_classes.shape)
 
     # Execute Neural Network testing
-    mnist_neural_network(train_classes, test_classes, train_features, test_features)
+    #mnist_neural_network(train_classes, test_classes, train_features, test_features)
 
     # Kernel Perceptron
+    mnist_perceptron_kernel(train_classes, test_classes, train_features, test_features)
 
     # SVM
 
