@@ -54,7 +54,7 @@ def libsvm_scale_import(filename, limit = 0):
     return classes, features
 
 
-def convert_classes_to_binary(classes):
+def convert_mnist_classes_to_binary(classes):
     """
     Given a list of integer classes, return an array where each class is
     converted to binary. e.g., 5.0 -> [0. 1. 0. 1.]
@@ -67,11 +67,12 @@ def convert_classes_to_binary(classes):
     return binary_classes
 
 
-# TODO: Do we need this???
-def convert_classes_to_integer(binary_classes):
+def convert_mnist_classes_to_integer(binary_classes):
     classes = np.zeros((binary_classes.shape[0], 1))
     for i in range(binary_classes.shape[0]):
-        pass
+        bins = binary_classes[i]
+        # Not very elegant, but it works
+        classes[i][0] = min((bins[0] * 8) + (bins[1] * 4) + (bins[2] * 2) + bins[3], 9)
         # print(classes[i][0], binary_classes[i])
     return classes
 
@@ -99,6 +100,7 @@ def train_neural_network(X, y, H_size, learning_rate, epochs):
     hy = (np.random.random((H_size + 1, y.shape[1]))) * 2 - 1
 
     for epoch in range(epochs):
+        print(str(epoch) + ' ', end = '')
 
         # --------------------
         # Forward Propagation
@@ -138,6 +140,8 @@ def train_neural_network(X, y, H_size, learning_rate, epochs):
         xh -= (learning_rate * H_gradient)
         hy -= (learning_rate * y_gradient)
 
+    print()
+
     # Return weight matrices when finished
     return xh, hy
 
@@ -155,9 +159,56 @@ def test_neural_network(X, xh, hy):
     return y_hat
 
 
+def mnist_neural_network(train_classes, test_classes, train_features,
+                         test_features):
+    """
+    Given MNIST features and classes split into training and testing data,
+    train and evaluate Neural Network.
+    """
+    # Convert classifications to binary
+    binary_train_classes = convert_mnist_classes_to_binary(train_classes)
+
+    # Train
+    xh, hy = train_neural_network(train_features, binary_train_classes, 100, 1.0, 100)
+
+    """
+    For 1000 samples:
+    10 units, 10 epochs, LR 0.5: 33/300
+    10 units, 1000 epochs, LR 0.5: 179/300
+    10 units, 10000 epochs, LR 0.5: 167/300 and super slow
+    20 units, 1000 epochs, LR 0.5: 191/300
+    20 units, 10000 epochs, LR 0.5: 197/300 and super slow
+    30 units, 1000 epochs, LR 0.5: 202/300
+    100 units, 10 epochs, LR 0.5: 41/300 ?
+    100 units, 1000 epochs, LR 0.5: 217/300
+    100 units, 1000 epochs, LR 0.05: 155/300
+    100 units, 1000 epochs, LR 5.0: 222/300
+
+    For 10000 samples:
+    10 units, 1000 epochs, LR 0.5: 2066/3000
+    10 units, 1000 epochs, LR 1.0: 2229/3000
+    100 units, 100 epochs, LR 1.0: /3000
+    """
+
+    # print(xh)
+    # print(hy)
+
+    # Test
+    binary_pred_classes = test_neural_network(test_features, xh, hy)
+    binary_pred_classes = 1.0 * (binary_pred_classes > 0.5)
+    pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
+    # print('Testing error:')
+    # print(test_classes - pred_classes)
+    correct = 0
+    for i in range(test_classes.shape[0]):
+        if (test_classes[i][0] == pred_classes[i][0]): correct += 1
+    print('Correct:', correct, '/', test_classes.shape[0])
+
+
+
 def main():
     # Load data
-    classes, features = libsvm_scale_import('data/mnist.scale', limit = 1000)
+    classes, features = libsvm_scale_import('data/mnist.scale', limit = 10000)
     split = int(len(classes) * 0.70)
     train_classes = classes[:split]
     test_classes = classes[split:]
@@ -166,28 +217,13 @@ def main():
     print('training data =', train_features.shape, train_classes.shape)
     print('test_data =', test_features.shape, test_classes.shape)
 
-    # 2-Layer Neural network
+    # Execute Neural Network testing
+    mnist_neural_network(train_classes, test_classes, train_features, test_features)
 
-    # Convert classifications to binary
-    binary_train_classes = convert_classes_to_binary(train_classes)
+    # Kernel Perceptron
 
-    # Train
-    xh, hy = train_neural_network(train_features, binary_train_classes, 10, 0.5, 10000)
+    # SVM
 
-    # print(xh)
-    # print(hy)
-
-    # Test
-    binary_test_classes = convert_classes_to_binary(test_classes)
-    predictions = test_neural_network(test_features, xh, hy)
-    predictions = 1.0 * (predictions > 0.5)
-    # print(predictions)
-    # print('Testing error:')
-    # print(binary_test_classes - predictions)
-    correct = 0
-    for i in range(binary_test_classes.shape[0]):
-        if (np.array_equal(binary_test_classes[i], predictions[i])): correct += 1
-    print('Correct:', correct, '/', binary_test_classes.shape[0])
 
 
 if __name__ == '__main__':
