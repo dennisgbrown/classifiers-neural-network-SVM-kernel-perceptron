@@ -341,6 +341,11 @@ def gram(X, ka, kb, kd):
         for j in range(X.shape[0]):
             G[i][j] = poly_kernel(X[i], X[j], ka, kb, kd)
 
+        print(str(i) + ' ', end = '')
+        sys.stdout.flush()
+
+    print()
+
     return G
 
 
@@ -710,7 +715,7 @@ def main():
 
     mnist_perceptron_kernel(train_classes, test_classes,
                             train_features, test_features,
-                            1000, 1.0, 100, 1.0, 3.0)
+                            10, 1.0, 100, 1.0, 3.0)
 
 if __name__ == '__main__':
     main()
