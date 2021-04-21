@@ -8,6 +8,7 @@ Dennis Brown, COMP6636, 23 APR 2021
 import numpy as np
 import random
 import sys
+import matplotlib.pyplot as plt
 
 
 ############################################
@@ -175,7 +176,7 @@ def test_neural_network(X, xh, hy):
 
 
 def mnist_neural_network(train_classes, test_classes, train_features,
-                         test_features):
+                         test_features, h_size, learning_rate, num_epochs):
     """
     Given MNIST features and classes split into training and testing data,
     train and evaluate Neural Network.
@@ -185,23 +186,31 @@ def mnist_neural_network(train_classes, test_classes, train_features,
 
     # Train
     xh, hy = train_neural_network(train_features, binary_train_classes,
-                                  100, 1.0, 1000)
+                                  h_size, learning_rate, num_epochs)
 
     # Test
     binary_pred_classes = test_neural_network(test_features, xh, hy)
     binary_pred_classes = 1.0 * (binary_pred_classes > 0.5)
     pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
-    # print('Testing error:')
-    # print(test_classes - pred_classes)
+
+    # Create label for this evaluation
+    label = str(train_features.shape[0] + test_features.shape[0])
+    label += '_' + str(h_size)
+    label += '_' + str(learning_rate)
+    label += '_' + str(num_epochs)
+
+    # Calculate number correct
     correct = 0
     cm = np.zeros((10, 10))
     for i in range(test_classes.shape[0]):
         if (pred_classes[i][0] == test_classes[i][0]): correct += 1
         cm[int(pred_classes[i][0])][int(test_classes[i][0])] += 1
-    print('Correct:', correct, '/', test_classes.shape[0])
+    print('Correct:', correct, '/', test_classes.shape[0], 'for', label)
     print(cm)
 
-    return correct, cm
+    np.savetxt('./data/confusion_nn_' + label + '.csv', cm, delimiter=',', fmt='%10.0f')
+
+    return correct / test_classes.shape[0]
 
 
 ############################################
@@ -260,7 +269,8 @@ def test_svm(X, w):
     return y_hat
 
 
-def mnist_svm(train_classes, test_classes, train_features, test_features):
+def mnist_svm(train_classes, test_classes, train_features, test_features,
+              limit, lam):
     """
     Given MNIST features and classes split into training and testing data,
     train and evaluate Support Vector Machine.
@@ -273,8 +283,6 @@ def mnist_svm(train_classes, test_classes, train_features, test_features):
     y4 = binary_train_classes[:,[3]]
 
     # Train on the four y vectors
-    limit = 100 * train_features.shape[0]
-    lam = 0.00001
     w1 = train_svm(train_features, y1, lam, limit)
     w2 = train_svm(train_features, y2, lam, limit)
     w3 = train_svm(train_features, y3, lam, limit)
@@ -290,16 +298,23 @@ def mnist_svm(train_classes, test_classes, train_features, test_features):
     binary_pred_classes = np.hstack((y_hat1, y_hat2, y_hat3, y_hat4))
     pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
 
+    # Create label for this evaluation
+    label = str(train_features.shape[0] + test_features.shape[0])
+    label += '_' + str(limit)
+    label += '_' + str(lam)
+
     # Calculate number correct
     correct = 0
     cm = np.zeros((10, 10))
     for i in range(test_classes.shape[0]):
         if (pred_classes[i][0] == test_classes[i][0]): correct += 1
         cm[int(pred_classes[i][0])][int(test_classes[i][0])] += 1
-    print('Correct:', correct, '/', test_classes.shape[0])
+    print('Correct:', correct, '/', test_classes.shape[0], 'for', label)
     print(cm)
 
-    return correct, cm
+    np.savetxt('./data/confusion_svm_' + label + '.csv', cm, delimiter=',', fmt='%10.0f')
+
+    return correct / test_classes.shape[0]
 
 
 ############################################
@@ -317,14 +332,14 @@ def poly_kernel(x, z, a, b, d):
     return (a + (b * (np.matmul(x.T, z))) ** d)
 
 
-def gram(X):
+def gram(X, ka, kb, kd):
     """
-    Calculate Gram Matrix given X
+    Calculate Gram Matrix given X and parameters for poly kernel
     """
     G = np.zeros((X.shape[0], X.shape[0]))
     for i in range(X.shape[0]):
         for j in range(X.shape[0]):
-            G[i][j] = poly_kernel(X[i], X[j], 0.0, 1.0, 2.0)
+            G[i][j] = poly_kernel(X[i], X[j], ka, kb, kd)
 
     return G
 
@@ -367,12 +382,10 @@ def train_perceptron_kernel(G, y, beta, step_limit):
                 converged = False
         steps += 1
 
-    # print('Final alpha = ', a, 'in', steps, 'steps; converged?', converged)
-
     return a
 
 
-def test_perceptron_kernel(Xtrain, Xtest, a):
+def test_perceptron_kernel(Xtrain, Xtest, a, ka, kb, kd):
     """
     Perceptron with a kernel. Given a sample matrices Xtrain and Xtest,
     and vector a, return predicted classes.
@@ -381,7 +394,7 @@ def test_perceptron_kernel(Xtrain, Xtest, a):
 
     for i in range(Xtest.shape[0]):
         for j in range(a.shape[0]):
-            y_hat[i][0] += a[j] * poly_kernel(Xtrain[j], Xtest[i], 0.0, 1.0, 2.0)
+            y_hat[i][0] += a[j] * poly_kernel(Xtrain[j], Xtest[i], ka, kb, kd)
 
     # Convert to (1, -1)
     y_hat = np.sign(y_hat)
@@ -393,10 +406,10 @@ def test_perceptron_kernel(Xtrain, Xtest, a):
 
 
 def mnist_perceptron_kernel(train_classes, test_classes, train_features,
-                            test_features):
+                            test_features, limit, beta, ka, kb, kd):
     """
     Given MNIST features and classes split into training and testing data,
-    train and evaluate Kernel Perceptron.
+    train and evaluate Kernel Perceptron. ka, kb, and kd are for poly kernel.
     """
     # Convert classes to four binary y vectors
     binary_train_classes = convert_mnist_classes_to_binary(train_classes)
@@ -406,9 +419,7 @@ def mnist_perceptron_kernel(train_classes, test_classes, train_features,
     y4 = binary_train_classes[:,[3]]
 
     # Train on the four y vectors
-    limit = 5000
-    beta = 1
-    G = gram(train_features)
+    G = gram(train_features, ka, kb, kd)
     a1 = train_perceptron_kernel(G, y1, beta, limit)
     a2 = train_perceptron_kernel(G, y2, beta, limit)
     a3 = train_perceptron_kernel(G, y3, beta, limit)
@@ -424,16 +435,26 @@ def mnist_perceptron_kernel(train_classes, test_classes, train_features,
     binary_pred_classes = np.hstack((y_hat1, y_hat2, y_hat3, y_hat4))
     pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
 
+    # Create label for this evaluation
+    label = str(train_features.shape[0] + test_features.shape[0])
+    label += '_' + str(limit)
+    label += '_' + str(beta)
+    label += '_' + str(ka)
+    label += '_' + str(kb)
+    label += '_' + str(kd)
+
     # Calculate number correct
     correct = 0
     cm = np.zeros((10, 10))
     for i in range(test_classes.shape[0]):
         if (pred_classes[i][0] == test_classes[i][0]): correct += 1
         cm[int(pred_classes[i][0])][int(test_classes[i][0])] += 1
-    print('Correct:', correct, '/', test_classes.shape[0])
+    print('Correct:', correct, '/', test_classes.shape[0], 'for', label)
     print(cm)
 
-    return correct, cm
+    np.savetxt('./data/confusion_kp_' + label + '.csv', cm, delimiter=',', fmt='%10.0f')
+
+    return correct / test_classes.shape[0]
 
 
 ############################################
@@ -445,7 +466,8 @@ def mnist_perceptron_kernel(train_classes, test_classes, train_features,
 def main():
 
     # Load data
-    classes, features = libsvm_scale_import('data/mnist.scale', limit = 1000)
+    sample_limit = 1000
+    classes, features = libsvm_scale_import('data/mnist.scale', limit = sample_limit)
     split = int(len(classes) * 0.70)
     train_classes = classes[:split]
     test_classes = classes[split:]
@@ -460,22 +482,61 @@ def main():
     # print(train_classes - decimal_train_classes)
 
     # Execute Neural Network testing
-    # print('\nNeural Network')
-    # acc_nn, confusion_nn = mnist_neural_network(train_classes, test_classes,
-    #                                             train_features, test_features)
-    # np.savetxt('./data/confusion_nn.csv', confusion_nn, delimiter=',', fmt='%10.0f')
+    print('\nNeural Network')
+    # nn_lrs = np.array([0.01, 0.1, 1.0, 10.0])
+    # nn_lr_results = np.zeros(nn_lrs.shape)
+    # for i in range(nn_lrs.shape[0]):
+    #     nn_lr_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
+    #                                             test_features, 100, nn_lrs[i], 100)
+    # plt.clf()
+    # plt.plot(nn_lrs, nn_lr_results, marker='.')
+    # plt.title('Neural Network: accuracy vs. learning rate for h=100, epochs=100')
+    # plt.xscale('log')
+    # plt.xlabel('learning rate')
+    # plt.ylabel('accuracy')
+    # plt.ylim(bottom = 0)
+    # plt.grid(True)
+    # plt.savefig('./plots/nn_accuracy_learning_rate.png', dpi = 600)
 
-    # Execute SVM testing
-    print('\nSupport Vector Machine')
-    acc_svm, confusion_svm = mnist_svm(train_classes, test_classes,
-                                        train_features, test_features)
-    np.savetxt('./data/confusion_svm.csv', confusion_svm, delimiter=',', fmt='%10.0f')
+    # nn_hs = np.array([1, 10, 100, 1000])
+    # nn_h_results = np.zeros(nn_hs.shape)
+    # for i in range(nn_hs.shape[0]):
+    #     nn_h_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
+    #                                            test_features, nn_hs[i], 1.0, 100)
+    # plt.clf()
+    # plt.plot(nn_hs, nn_h_results, marker='.')
+    # plt.title('Neural Network: accuracy vs. hidden layer size for lr=1.0, epochs=100')
+    # plt.xscale('log')
+    # plt.xlabel('hidden layer size')
+    # plt.ylabel('accuracy')
+    # plt.ylim(bottom = 0)
+    # plt.grid(True)
+    # plt.savefig('./plots/nn_accuracy_hsize.png', dpi = 600)
 
-    # Execute Kernel Perceptron testing
+    nn_epochs = np.array([10, 100, 1000, 10000])
+    nn_epoch_results = np.zeros(nn_epochs.shape)
+    for i in range(nn_epochs.shape[0]):
+        nn_epoch_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
+                                                   test_features, 100, 1.0, nn_epochs[i])
+    plt.clf()
+    plt.plot(nn_epochs, nn_epoch_results, marker='.')
+    plt.title('Neural Network: accuracy vs. epochs for h=100, lr=1.0')
+    plt.xscale('log')
+    plt.xlabel('number of epochs')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/nn_accuracy_epochs.png', dpi = 600)
+
+    # # Execute SVM testing
+    # print('\nSupport Vector Machine')
+    # mnist_svm(train_classes, test_classes, train_features, test_features,
+    #           100000, 0.00001)
+
+    # # Execute Kernel Perceptron testing
     # print('\nKernel Perceptron')
-    # acc_kp, confusion_kp = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                train_features, test_features)
-    # np.savetxt('./data/confusion_kp.csv', confusion_kp, delimiter=',', fmt='%10.0f')
+    # mnist_perceptron_kernel(train_classes, test_classes, train_features,
+    #                         test_features, 5000, 1, 0.0, 1.0, 2.0)
 
 
 if __name__ == '__main__':
