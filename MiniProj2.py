@@ -102,38 +102,48 @@ def poly_kernel(x, z, a, b, d):
     return (a + (b * (np.matmul(x.T, z))) ** d)
 
 
-def train_perceptron_kernel(X, y, beta, step_limit):
+def gram(X):
     """
-    Perceptron with a kernel. Given a 2-D set of data X (samples are rows,
-    columns features), a vector Y of classifications, a learning rate (beta),
+    Calculate Gram Matrix given X
+    """
+    G = np.zeros((X.shape[0], X.shape[0]))
+    for i in range(X.shape[0]):
+        for j in range(X.shape[0]):
+            G[i][j] = poly_kernel(X[i], X[j], 0.0, 1.0, 2.0)
+
+    return G
+
+
+def train_perceptron_kernel(G, y, beta, step_limit):
+    """
+    Perceptron with a kernel. Given a Gram matrix G,
+    a vector Y of classifications, a learning rate (beta),
     and a step limit, train and return a weight vector that
     can be used to classify the given data.
     """
 
+    # Convert (1, 0) to (1, -1)
+    y = y * 2 - 1
+
     # Initialize the alpha vector
-    a = np.zeros(X.shape[0])
+    a = np.zeros(G.shape[0])
 
     # Initialize y_hat
-    y_hat = np.zeros((X.shape[0], 1))
+    y_hat = np.zeros((G.shape[0], 1))
 
     # Repeat the main loop until we have convergence or reach the
     # iteration limit
     steps = 0
     converged = False
     while(not(converged) and (steps < step_limit)):
-        print(str(steps) + ' ', end = '')
-
         converged = True # assume converged until we determine otherwise
 
         # For each sample in X, calculate alpha's classification error
         # and update alpha.
-        for i in range(len(X)):
+        for i in range(G.shape[0]):
 
             # Find current prediction based on kernel
-            predict_val = 0
-            for j in range(len(X)):
-                predict_val += a[i] * poly_kernel(X[j], X[i], 0.0, 1.0, 1.0)
-            y_hat[i][0] = 1 if (predict_val > 0) else -1
+            y_hat[i][0] = np.sign(np.matmul(G[i,:], a))
 
             # If error on this element is > a very small value (is not
             # effectively 0), we need to update alpha, and have not converged.
@@ -143,71 +153,70 @@ def train_perceptron_kernel(X, y, beta, step_limit):
                 converged = False
         steps += 1
 
-    print()
     # print('Final alpha = ', a, 'in', steps, 'steps; converged?', converged)
 
     return a
 
 
-def test_perceptron_kernel(X, a):
-    y_hat = np.zeros((X.shape[0], 1))
-    for i in range(len(X)):
-        predict_val = 0
-        for j in range(len(X)):
-            predict_val += a[i] * poly_kernel(X[j], X[i], 0.0, 1.0, 1.0)
-        y_hat[i][0] = 1 if (predict_val > 0) else -1
-    # print('Y   :', y)
-    # print('Y^  :', y_hat)
-    # print('Diff:', y - y_hat)
+def test_perceptron_kernel(Xtrain, Xtest, a):
+    """
+    Perceptron with a kernel. Given a sample matrices Xtrain and Xtest,
+    and vector a, return predicted classes.
+    """
+    y_hat = np.zeros((Xtest.shape[0], 1))
+
+    for i in range(Xtest.shape[0]):
+        for j in range(a.shape[0]):
+            y_hat[i][0] += a[j] * poly_kernel(Xtrain[j], Xtest[i], 0.0, 1.0, 2.0)
+
+    # Convert to (1, -1)
+    y_hat = np.sign(y_hat)
+
+    # Convert (1, -1) to (1, 0)
+    y_hat = (y_hat + 1) / 2
+
     return y_hat
 
 
 def mnist_perceptron_kernel(train_classes, test_classes, train_features,
                             test_features):
 
+    # Convert classes to four binary y vectors
     binary_train_classes = convert_mnist_classes_to_binary(train_classes)
-
     y1 = binary_train_classes[:,[0]]
     y2 = binary_train_classes[:,[1]]
     y3 = binary_train_classes[:,[2]]
     y4 = binary_train_classes[:,[3]]
 
-    limit = 3
-    beta = .05
-    a1 = train_perceptron_kernel(train_features, y1, beta, limit)
-    a2 = train_perceptron_kernel(train_features, y2, beta, limit)
-    a3 = train_perceptron_kernel(train_features, y3, beta, limit)
-    a4 = train_perceptron_kernel(train_features, y4, beta, limit)
+    # Train on the four y vectors
+    limit = 5000
+    beta = 1
+    G = gram(train_features)
+    a1 = train_perceptron_kernel(G, y1, beta, limit)
+    a2 = train_perceptron_kernel(G, y2, beta, limit)
+    a3 = train_perceptron_kernel(G, y3, beta, limit)
+    a4 = train_perceptron_kernel(G, y4, beta, limit)
 
-    y_hat1 = test_perceptron_kernel(train_features, a1)
-    y_hat2 = test_perceptron_kernel(train_features, a2)
-    y_hat3 = test_perceptron_kernel(train_features, a3)
-    y_hat4 = test_perceptron_kernel(train_features, a4)
+    # Get binary predictions from the four perceptrons
+    y_hat1 = test_perceptron_kernel(train_features, test_features, a1)
+    y_hat2 = test_perceptron_kernel(train_features, test_features, a2)
+    y_hat3 = test_perceptron_kernel(train_features, test_features, a3)
+    y_hat4 = test_perceptron_kernel(train_features, test_features, a4)
 
+    # Convert binary predictions back to decimal
     binary_pred_classes = np.hstack((y_hat1, y_hat2, y_hat3, y_hat4))
-    binary_pred_classes = 1.0 * (binary_pred_classes > 0.0)
-
-    # print('YHAT', binary_pred_classes)
-
     pred_classes = convert_mnist_classes_to_integer(binary_pred_classes)
+
+    # Calculate number correct
     correct = 0
+    cm = np.zeros((10, 10))
     for i in range(test_classes.shape[0]):
-        # print(test_classes[i][0], pred_classes[i][0])
-        if (test_classes[i][0] == pred_classes[i][0]): correct += 1
+        if (pred_classes[i][0] == test_classes[i][0]): correct += 1
+        cm[int(pred_classes[i][0])][int(test_classes[i][0])] += 1
     print('Correct:', correct, '/', test_classes.shape[0])
+    print(cm)
 
-    """
-    For 1000 samples:
-    3 steps, beta .05: 26/300
-    3 steps, beta .5: 26/300
-    10 steps, beta .05: 26/300
-
-    For 10000 samples:
-    3 steps, beta .05: 302/3000
-    """
-
-
-
+    return correct, cm
 
 
 ############################################
@@ -238,7 +247,7 @@ def train_neural_network(X, y, H_size, learning_rate, epochs):
     hy = (np.random.random((H_size + 1, y.shape[1]))) * 2 - 1
 
     for epoch in range(epochs):
-        print(str(epoch) + ' ', end = '')
+        if ((epoch % 10) == 0): print(str(epoch) + ' ', end = '')
 
         # --------------------
         # Forward Propagation
@@ -262,8 +271,8 @@ def train_neural_network(X, y, H_size, learning_rate, epochs):
         # Find error
         y_error = y_hat - y
 
-        # Calculate hidden layer error
-        H_error = H_output * (1 - H_output) * np.dot(y_error, hy.T[:, 1:]) # remove bias from hy
+        # Calculate hidden layer error (remove bias from hy)
+        H_error = H_output * (1 - H_output) * np.dot(y_error, hy.T[:, 1:])
 
         # Calculate partial derivatives
         H_pd = X_bias[:, :, np.newaxis] * H_error[: , np.newaxis, :]
@@ -307,11 +316,8 @@ def mnist_neural_network(train_classes, test_classes, train_features,
     binary_train_classes = convert_mnist_classes_to_binary(train_classes)
 
     # Train
-    xh, hy = train_neural_network(train_features, binary_train_classes, 100, 1.0, 100)
-
-
-    # print(xh)
-    # print(hy)
+    xh, hy = train_neural_network(train_features, binary_train_classes,
+                                  100, 1.0, 1000)
 
     # Test
     binary_pred_classes = test_neural_network(test_features, xh, hy)
@@ -320,28 +326,14 @@ def mnist_neural_network(train_classes, test_classes, train_features,
     # print('Testing error:')
     # print(test_classes - pred_classes)
     correct = 0
+    cm = np.zeros((10, 10))
     for i in range(test_classes.shape[0]):
-        if (test_classes[i][0] == pred_classes[i][0]): correct += 1
+        if (pred_classes[i][0] == test_classes[i][0]): correct += 1
+        cm[int(pred_classes[i][0])][int(test_classes[i][0])] += 1
     print('Correct:', correct, '/', test_classes.shape[0])
+    print(cm)
 
-    """
-    For 1000 samples:
-    10 units, 10 epochs, LR 0.5: 33/300
-    10 units, 1000 epochs, LR 0.5: 179/300
-    10 units, 10000 epochs, LR 0.5: 167/300 and super slow
-    20 units, 1000 epochs, LR 0.5: 191/300
-    20 units, 10000 epochs, LR 0.5: 197/300 and super slow
-    30 units, 1000 epochs, LR 0.5: 202/300
-    100 units, 10 epochs, LR 0.5: 41/300 ?
-    100 units, 1000 epochs, LR 0.5: 217/300
-    100 units, 1000 epochs, LR 0.05: 155/300
-    100 units, 1000 epochs, LR 5.0: 222/300
-
-    For 10000 samples:
-    10 units, 1000 epochs, LR 0.5: 2066/3000
-    10 units, 1000 epochs, LR 1.0: 2229/3000
-    100 units, 100 epochs, LR 1.0: /3000
-    """
+    return correct, cm
 
 
 ############################################
@@ -362,14 +354,28 @@ def main():
     print('training data =', train_features.shape, train_classes.shape)
     print('test_data =', test_features.shape, test_classes.shape)
 
+    # # Test decimal-binary-decimal conversion
+    # binary_train_classes = convert_mnist_classes_to_binary(train_classes)
+    # decimal_train_classes = convert_mnist_classes_to_integer(binary_train_classes)
+    # print(train_classes - decimal_train_classes)
+
     # Execute Neural Network testing
-    #mnist_neural_network(train_classes, test_classes, train_features, test_features)
+    print('\nNeural Network')
+    acc_nn, confusion_nn = mnist_neural_network(train_classes, test_classes,
+                                                train_features, test_features)
+    np.savetxt('./data/confusion_nn.csv', confusion_nn, delimiter=',', fmt='%10.0f')
 
-    # Kernel Perceptron
-    mnist_perceptron_kernel(train_classes, test_classes, train_features, test_features)
+    # Execute SVM testing
+    print('\nSupport Vector Machine')
+    # acc_svm, confusion_svm = mnist_svm(train_classes, test_classes,
+    #                                    train_features, test_features)
+    # np.savetxt('./data/confusion_svm.csv', confusion_svm, delimiter=',', fmt='%10.0f')
 
-    # SVM
-
+    # Execute Kernel Perceptron testing
+    print('\nKernel Perceptron')
+    acc_kp, confusion_kp = mnist_perceptron_kernel(train_classes, test_classes,
+                                                   train_features, test_features)
+    np.savetxt('./data/confusion_kp.csv', confusion_kp, delimiter=',', fmt='%10.0f')
 
 
 if __name__ == '__main__':
