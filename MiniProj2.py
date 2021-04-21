@@ -365,6 +365,9 @@ def train_perceptron_kernel(G, y, beta, step_limit):
     steps = 0
     converged = False
     while(not(converged) and (steps < step_limit)):
+        print(str(steps) + ' ', end = '')
+        sys.stdout.flush()
+
         converged = True # assume converged until we determine otherwise
 
         # For each sample in X, calculate alpha's classification error
@@ -465,11 +468,11 @@ def mnist_perceptron_kernel(train_classes, test_classes, train_features,
 
 def main():
 
-    ############################################
-    #
-    # PART 1: VARIATIONS OF HYPERPARAMETERS ON A SMALL DATA SET
-    #
-    ############################################
+    # ############################################
+    # #
+    # # PART 1: VARIATIONS OF HYPERPARAMETERS ON A SMALL DATA SET
+    # #
+    # ############################################
 
     # # Load small data set for variation tests
     # sample_limit = 1000
@@ -511,7 +514,7 @@ def main():
     # nn_h_results = np.zeros(nn_hs.shape)
     # for i in range(nn_hs.shape[0]):
     #     nn_h_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
-    #                                            test_features, nn_hs[i], 1.0, 100)
+    #                                             test_features, nn_hs[i], 1.0, 100)
     # plt.clf()
     # plt.plot(nn_hs, nn_h_results, marker='.')
     # plt.title('Neural Network: accuracy vs. hidden layer size for lr=1.0, epochs=100')
@@ -527,7 +530,7 @@ def main():
     # nn_epoch_results = np.zeros(nn_epochs.shape)
     # for i in range(nn_epochs.shape[0]):
     #     nn_epoch_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
-    #                                                test_features, 100, 1.0, nn_epochs[i])
+    #                                                 test_features, 100, 1.0, nn_epochs[i])
     # plt.clf()
     # plt.plot(nn_epochs, nn_epoch_results, marker='.')
     # plt.title('Neural Network: accuracy vs. epochs for h=100, lr=1.0')
@@ -562,7 +565,7 @@ def main():
     # svm_lam_results = np.zeros(svm_lams.shape)
     # for i in range(svm_lams.shape[0]):
     #     svm_lam_results[i] = mnist_svm(train_classes, test_classes, train_features,
-    #                                    test_features, 100000, svm_lams[i])
+    #                                     test_features, 100000, svm_lams[i])
     # plt.clf()
     # plt.plot(svm_lams, svm_lam_results, marker='.')
     # plt.title('SVM: accuracy vs. lambda for steps=100000')
@@ -581,9 +584,9 @@ def main():
     # kp_step_results = np.zeros(kp_steps.shape)
     # for i in range(kp_steps.shape[0]):
     #     kp_step_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                  train_features, test_features,
-    #                                                  kp_steps[i], 1,
-    #                                                  0.0, 1.0, 2.0)
+    #                                                   train_features, test_features,
+    #                                                   kp_steps[i], 1,
+    #                                                   0.0, 1.0, 2.0)
     # plt.clf()
     # plt.plot(kp_steps, kp_step_results, marker='.')
     # plt.title('Perceptron Kernel: accuracy vs. steps for beta=1, a,b,d=0,1,2')
@@ -599,9 +602,9 @@ def main():
     # kp_beta_results = np.zeros(kp_betas.shape)
     # for i in range(kp_betas.shape[0]):
     #     kp_beta_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                  train_features, test_features,
-    #                                                  1000, kp_betas[i],
-    #                                                  0.0, 1.0, 2.0)
+    #                                                   train_features, test_features,
+    #                                                   1000, kp_betas[i],
+    #                                                   0.0, 1.0, 2.0)
     # plt.clf()
     # plt.plot(kp_betas, kp_beta_results, marker='.')
     # plt.title('Perceptron Kernel: accuracy vs. beta for steps=1000, a,b,d=0,1,2')
@@ -686,7 +689,7 @@ def main():
 
     ############################################
     #
-    # PART 2: TEST ENTIRE DATA SET ON OPTIMAL(?) PARAMETERS
+    # PART 2: TEST ENTIRE DATA SET ON OPTIMAL-ISH PARAMETERS
     #
     ############################################
 
@@ -701,9 +704,9 @@ def main():
     print('test_data =', test_features.shape, test_classes.shape)
 
     # mnist_neural_network(train_classes, test_classes, train_features,
-    #                      test_features, 100, 1.0, 1000)  # this takes 12 hours
+    #                       test_features, 100, 1.0, 1000)  # this takes 12 hours
 
-    mnist_svm(train_classes, test_classes, train_features, test_features, 6000000, 0.1)
+    # mnist_svm(train_classes, test_classes, train_features, test_features, 6000000, 0.1)
 
     mnist_perceptron_kernel(train_classes, test_classes,
                             train_features, test_features,
