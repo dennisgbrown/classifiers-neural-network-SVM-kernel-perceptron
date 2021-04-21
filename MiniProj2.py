@@ -341,11 +341,6 @@ def gram(X, ka, kb, kd):
         for j in range(X.shape[0]):
             G[i][j] = poly_kernel(X[i], X[j], ka, kb, kd)
 
-        print(str(i) + ' ', end = '')
-        sys.stdout.flush()
-
-    print()
-
     return G
 
 
@@ -370,9 +365,6 @@ def train_perceptron_kernel(G, y, beta, step_limit):
     steps = 0
     converged = False
     while(not(converged) and (steps < step_limit)):
-        print(str(steps) + ' ', end = '')
-        sys.stdout.flush()
-
         converged = True # assume converged until we determine otherwise
 
         # For each sample in X, calculate alpha's classification error
@@ -473,223 +465,223 @@ def mnist_perceptron_kernel(train_classes, test_classes, train_features,
 
 def main():
 
-    # ############################################
-    # #
-    # # PART 1: VARIATIONS OF HYPERPARAMETERS ON A SMALL DATA SET
-    # #
-    # ############################################
+    ############################################
+    #
+    # PART 1: VARIATIONS OF HYPERPARAMETERS ON A SMALL DATA SET
+    #
+    ############################################
 
-    # # Load small data set for variation tests
-    # sample_limit = 1000
-    # classes, features = libsvm_scale_import('data/mnist.scale', limit = sample_limit)
-    # split = int(len(classes) * 0.70)
-    # train_classes = classes[:split]
-    # test_classes = classes[split:]
-    # train_features = features[:split]
-    # test_features = features[split:]
-    # print('training data =', train_features.shape, train_classes.shape)
-    # print('test_data =', test_features.shape, test_classes.shape)
+    # Load small data set for variation tests
+    sample_limit = 1000
+    classes, features = libsvm_scale_import('data/mnist.scale', limit = sample_limit)
+    split = int(len(classes) * 0.70)
+    train_classes = classes[:split]
+    test_classes = classes[split:]
+    train_features = features[:split]
+    test_features = features[split:]
+    print('training data =', train_features.shape, train_classes.shape)
+    print('test_data =', test_features.shape, test_classes.shape)
 
-    # # Test decimal-binary-decimal conversion
-    # binary_train_classes = convert_mnist_classes_to_binary(train_classes)
-    # decimal_train_classes = convert_mnist_classes_to_integer(binary_train_classes)
-    # print(train_classes - decimal_train_classes)
+    # Test decimal-binary-decimal conversion
+    binary_train_classes = convert_mnist_classes_to_binary(train_classes)
+    decimal_train_classes = convert_mnist_classes_to_integer(binary_train_classes)
+    print(train_classes - decimal_train_classes)
 
-    # # Execute Neural Network testing
-    # print('\nNeural Network Variations')
+    # Execute Neural Network testing
+    print('\nNeural Network Variations')
 
-    # # Vary learning rate
-    # nn_lrs = np.array([0.01, 0.1, 1.0, 10.0])
-    # nn_lr_results = np.zeros(nn_lrs.shape)
-    # for i in range(nn_lrs.shape[0]):
-    #     nn_lr_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
-    #                                             test_features, 100, nn_lrs[i], 100)
-    # plt.clf()
-    # plt.plot(nn_lrs, nn_lr_results, marker='.')
-    # plt.title('Neural Network: accuracy vs. learning rate for h=100, epochs=100')
-    # plt.xscale('log')
-    # plt.xlabel('learning rate')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/nn_accuracy_learning_rate.png', dpi = 600)
+    # Vary learning rate
+    nn_lrs = np.array([0.01, 0.1, 1.0, 10.0])
+    nn_lr_results = np.zeros(nn_lrs.shape)
+    for i in range(nn_lrs.shape[0]):
+        nn_lr_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
+                                                test_features, 100, nn_lrs[i], 100)
+    plt.clf()
+    plt.plot(nn_lrs, nn_lr_results, marker='.')
+    plt.title('Neural Network: accuracy vs. learning rate for h=100, epochs=100')
+    plt.xscale('log')
+    plt.xlabel('learning rate')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/nn_accuracy_learning_rate.png', dpi = 600)
 
-    # # Vary size of hidden layer
-    # nn_hs = np.array([1, 10, 100, 1000])
-    # nn_h_results = np.zeros(nn_hs.shape)
-    # for i in range(nn_hs.shape[0]):
-    #     nn_h_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
-    #                                             test_features, nn_hs[i], 1.0, 100)
-    # plt.clf()
-    # plt.plot(nn_hs, nn_h_results, marker='.')
-    # plt.title('Neural Network: accuracy vs. hidden layer size for lr=1.0, epochs=100')
-    # plt.xscale('log')
-    # plt.xlabel('hidden layer size')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/nn_accuracy_hsize.png', dpi = 600)
+    # Vary size of hidden layer
+    nn_hs = np.array([1, 10, 100, 1000])
+    nn_h_results = np.zeros(nn_hs.shape)
+    for i in range(nn_hs.shape[0]):
+        nn_h_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
+                                                test_features, nn_hs[i], 1.0, 100)
+    plt.clf()
+    plt.plot(nn_hs, nn_h_results, marker='.')
+    plt.title('Neural Network: accuracy vs. hidden layer size for lr=1.0, epochs=100')
+    plt.xscale('log')
+    plt.xlabel('hidden layer size')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/nn_accuracy_hsize.png', dpi = 600)
 
-    # # Vary number of epochs
-    # nn_epochs = np.array([10, 100, 1000, 10000])
-    # nn_epoch_results = np.zeros(nn_epochs.shape)
-    # for i in range(nn_epochs.shape[0]):
-    #     nn_epoch_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
-    #                                                 test_features, 100, 1.0, nn_epochs[i])
-    # plt.clf()
-    # plt.plot(nn_epochs, nn_epoch_results, marker='.')
-    # plt.title('Neural Network: accuracy vs. epochs for h=100, lr=1.0')
-    # plt.xscale('log')
-    # plt.xlabel('number of epochs')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/nn_accuracy_epochs.png', dpi = 600)
+    # Vary number of epochs
+    nn_epochs = np.array([10, 100, 1000, 10000])
+    nn_epoch_results = np.zeros(nn_epochs.shape)
+    for i in range(nn_epochs.shape[0]):
+        nn_epoch_results[i] = mnist_neural_network(train_classes, test_classes, train_features,
+                                                    test_features, 100, 1.0, nn_epochs[i])
+    plt.clf()
+    plt.plot(nn_epochs, nn_epoch_results, marker='.')
+    plt.title('Neural Network: accuracy vs. epochs for h=100, lr=1.0')
+    plt.xscale('log')
+    plt.xlabel('number of epochs')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/nn_accuracy_epochs.png', dpi = 600)
 
-    # # Execute SVM testing
-    # print('\nSupport Vector Machine Variations')
+    # Execute SVM testing
+    print('\nSupport Vector Machine Variations')
 
-    # # Vary number of steps
-    # svm_steps = np.array([10, 100, 1000, 10000, 100000, 1000000])
-    # svm_step_results = np.zeros(svm_steps.shape)
-    # for i in range(svm_steps.shape[0]):
-    #     svm_step_results[i] = mnist_svm(train_classes, test_classes, train_features,
-    #                                     test_features, svm_steps[i], 0.1)
-    # plt.clf()
-    # plt.plot(svm_steps, svm_step_results, marker='.')
-    # plt.title('SVM: accuracy vs. steps for lambda=0.1')
-    # plt.xscale('log')
-    # plt.xlabel('number of steps')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/svm_accuracy_step.png', dpi = 600)
+    # Vary number of steps
+    svm_steps = np.array([10, 100, 1000, 10000, 100000, 1000000])
+    svm_step_results = np.zeros(svm_steps.shape)
+    for i in range(svm_steps.shape[0]):
+        svm_step_results[i] = mnist_svm(train_classes, test_classes, train_features,
+                                        test_features, svm_steps[i], 0.1)
+    plt.clf()
+    plt.plot(svm_steps, svm_step_results, marker='.')
+    plt.title('SVM: accuracy vs. steps for lambda=0.1')
+    plt.xscale('log')
+    plt.xlabel('number of steps')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/svm_accuracy_step.png', dpi = 600)
 
-    # # Vary lambda
-    # svm_lams = np.array([1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0])
-    # svm_lam_results = np.zeros(svm_lams.shape)
-    # for i in range(svm_lams.shape[0]):
-    #     svm_lam_results[i] = mnist_svm(train_classes, test_classes, train_features,
-    #                                     test_features, 100000, svm_lams[i])
-    # plt.clf()
-    # plt.plot(svm_lams, svm_lam_results, marker='.')
-    # plt.title('SVM: accuracy vs. lambda for steps=100000')
-    # plt.xscale('log')
-    # plt.xlabel('lambda')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/svm_accuracy_lambda.png', dpi = 600)
+    # Vary lambda
+    svm_lams = np.array([1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0])
+    svm_lam_results = np.zeros(svm_lams.shape)
+    for i in range(svm_lams.shape[0]):
+        svm_lam_results[i] = mnist_svm(train_classes, test_classes, train_features,
+                                        test_features, 100000, svm_lams[i])
+    plt.clf()
+    plt.plot(svm_lams, svm_lam_results, marker='.')
+    plt.title('SVM: accuracy vs. lambda for steps=100000')
+    plt.xscale('log')
+    plt.xlabel('lambda')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/svm_accuracy_lambda.png', dpi = 600)
 
-    # # Execute Kernel Perceptron testing
-    # print('\nKernel Perceptron Variations')
+    # Execute Kernel Perceptron testing
+    print('\nKernel Perceptron Variations')
 
-    # # Vary number of steps
-    # kp_steps = np.array([1, 10, 100, 1000, 10000, 100000, 1000000])
-    # kp_step_results = np.zeros(kp_steps.shape)
-    # for i in range(kp_steps.shape[0]):
-    #     kp_step_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                   train_features, test_features,
-    #                                                   kp_steps[i], 1,
-    #                                                   0.0, 1.0, 2.0)
-    # plt.clf()
-    # plt.plot(kp_steps, kp_step_results, marker='.')
-    # plt.title('Perceptron Kernel: accuracy vs. steps for beta=1, a,b,d=0,1,2')
-    # plt.xscale('log')
-    # plt.xlabel('number of steps')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/kp_accuracy_step.png', dpi = 600)
+    # Vary number of steps
+    kp_steps = np.array([1, 10, 100, 1000, 10000, 100000, 1000000])
+    kp_step_results = np.zeros(kp_steps.shape)
+    for i in range(kp_steps.shape[0]):
+        kp_step_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
+                                                      train_features, test_features,
+                                                      kp_steps[i], 1,
+                                                      0.0, 1.0, 2.0)
+    plt.clf()
+    plt.plot(kp_steps, kp_step_results, marker='.')
+    plt.title('Perceptron Kernel: accuracy vs. steps for beta=1, a,b,d=0,1,2')
+    plt.xscale('log')
+    plt.xlabel('number of steps')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/kp_accuracy_step.png', dpi = 600)
 
-    # # Vary beta
-    # kp_betas = np.array([1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0])
-    # kp_beta_results = np.zeros(kp_betas.shape)
-    # for i in range(kp_betas.shape[0]):
-    #     kp_beta_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                   train_features, test_features,
-    #                                                   1000, kp_betas[i],
-    #                                                   0.0, 1.0, 2.0)
-    # plt.clf()
-    # plt.plot(kp_betas, kp_beta_results, marker='.')
-    # plt.title('Perceptron Kernel: accuracy vs. beta for steps=1000, a,b,d=0,1,2')
-    # plt.xscale('log')
-    # plt.xlabel('beta')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/kp_accuracy_beta.png', dpi = 600)
+    # Vary beta
+    kp_betas = np.array([1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0, 10.0])
+    kp_beta_results = np.zeros(kp_betas.shape)
+    for i in range(kp_betas.shape[0]):
+        kp_beta_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
+                                                      train_features, test_features,
+                                                      1000, kp_betas[i],
+                                                      0.0, 1.0, 2.0)
+    plt.clf()
+    plt.plot(kp_betas, kp_beta_results, marker='.')
+    plt.title('Perceptron Kernel: accuracy vs. beta for steps=1000, a,b,d=0,1,2')
+    plt.xscale('log')
+    plt.xlabel('beta')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/kp_accuracy_beta.png', dpi = 600)
 
-    # # Vary a
-    # kp_kas = np.array([1e-2, 1e-1, 1.0, 10.0, 100, 1000, 10000, 100000])
-    # kp_ka_results = np.zeros(kp_kas.shape)
-    # for i in range(kp_kas.shape[0]):
-    #     kp_ka_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                 train_features, test_features,
-    #                                                 1000, 1.0,
-    #                                                 kp_kas[i], 1.0, 2.0)
-    # plt.clf()
-    # plt.plot(kp_kas, kp_ka_results, marker='.')
-    # plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, b,d=1,2')
-    # plt.xscale('log')
-    # plt.xlabel('a (for polynomial kernel)')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/kp_accuracy_ka.png', dpi = 600)
+    # Vary a
+    kp_kas = np.array([1e-2, 1e-1, 1.0, 10.0, 100, 1000, 10000, 100000])
+    kp_ka_results = np.zeros(kp_kas.shape)
+    for i in range(kp_kas.shape[0]):
+        kp_ka_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
+                                                    train_features, test_features,
+                                                    1000, 1.0,
+                                                    kp_kas[i], 1.0, 2.0)
+    plt.clf()
+    plt.plot(kp_kas, kp_ka_results, marker='.')
+    plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, b,d=1,2')
+    plt.xscale('log')
+    plt.xlabel('a (for polynomial kernel)')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/kp_accuracy_ka.png', dpi = 600)
 
-    # # Vary b
-    # kp_kbs = np.array([1e-2, 1e-1, 1.0, 10.0, 100, 1000, 10000, 100000])
-    # kp_kb_results = np.zeros(kp_kbs.shape)
-    # for i in range(kp_kbs.shape[0]):
-    #     kp_kb_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                 train_features, test_features,
-    #                                                 1000, 1.0,
-    #                                                 100, kp_kbs[i], 2.0)
-    # plt.clf()
-    # plt.plot(kp_kbs, kp_kb_results, marker='.')
-    # plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, a,d=100,2')
-    # plt.xscale('log')
-    # plt.xlabel('b (for polynomial kernel)')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/kp_accuracy_kb.png', dpi = 600)
+    # Vary b
+    kp_kbs = np.array([1e-2, 1e-1, 1.0, 10.0, 100, 1000, 10000, 100000])
+    kp_kb_results = np.zeros(kp_kbs.shape)
+    for i in range(kp_kbs.shape[0]):
+        kp_kb_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
+                                                    train_features, test_features,
+                                                    1000, 1.0,
+                                                    100, kp_kbs[i], 2.0)
+    plt.clf()
+    plt.plot(kp_kbs, kp_kb_results, marker='.')
+    plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, a,d=100,2')
+    plt.xscale('log')
+    plt.xlabel('b (for polynomial kernel)')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/kp_accuracy_kb.png', dpi = 600)
 
-    # # Vary d
-    # kp_kds = np.array([1e-2, 1e-1, 1.0, 10.0, 100])
-    # kp_kd_results = np.zeros(kp_kds.shape)
-    # for i in range(kp_kds.shape[0]):
-    #     kp_kd_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                 train_features, test_features,
-    #                                                 1000, 1.0,
-    #                                                 100, 1.0, kp_kds[i])
-    # plt.clf()
-    # plt.plot(kp_kds, kp_kd_results, marker='.')
-    # plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, a,b=100,1')
-    # plt.xscale('log')
-    # plt.xlabel('d (for polynomial kernel)')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/kp_accuracy_kd.png', dpi = 600)
+    # Vary d
+    kp_kds = np.array([1e-2, 1e-1, 1.0, 10.0, 100])
+    kp_kd_results = np.zeros(kp_kds.shape)
+    for i in range(kp_kds.shape[0]):
+        kp_kd_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
+                                                    train_features, test_features,
+                                                    1000, 1.0,
+                                                    100, 1.0, kp_kds[i])
+    plt.clf()
+    plt.plot(kp_kds, kp_kd_results, marker='.')
+    plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, a,b=100,1')
+    plt.xscale('log')
+    plt.xlabel('d (for polynomial kernel)')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/kp_accuracy_kd.png', dpi = 600)
 
-    # # Vary d again (different and linear range)
-    # kp_kds = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    # kp_kd_results = np.zeros(kp_kds.shape)
-    # for i in range(kp_kds.shape[0]):
-    #     kp_kd_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
-    #                                                 train_features, test_features,
-    #                                                 1000, 1.0,
-    #                                                 100, 1.0, kp_kds[i])
-    # plt.clf()
-    # plt.plot(kp_kds, kp_kd_results, marker='.')
-    # plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, a,b=100,1')
-    # plt.xlabel('d (for polynomial kernel)')
-    # plt.ylabel('accuracy')
-    # plt.ylim(bottom = 0)
-    # plt.grid(True)
-    # plt.savefig('./plots/kp_accuracy_kd_part2.png', dpi = 600)
+    # Vary d again (different and linear range)
+    kp_kds = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    kp_kd_results = np.zeros(kp_kds.shape)
+    for i in range(kp_kds.shape[0]):
+        kp_kd_results[i] = mnist_perceptron_kernel(train_classes, test_classes,
+                                                    train_features, test_features,
+                                                    1000, 1.0,
+                                                    100, 1.0, kp_kds[i])
+    plt.clf()
+    plt.plot(kp_kds, kp_kd_results, marker='.')
+    plt.title('Perceptron Kernel: accuracy vs. kernel a for steps=1000, beta=1, a,b=100,1')
+    plt.xlabel('d (for polynomial kernel)')
+    plt.ylabel('accuracy')
+    plt.ylim(bottom = 0)
+    plt.grid(True)
+    plt.savefig('./plots/kp_accuracy_kd_part2.png', dpi = 600)
 
 
     ############################################
@@ -708,10 +700,10 @@ def main():
     print('training data =', train_features.shape, train_classes.shape)
     print('test_data =', test_features.shape, test_classes.shape)
 
-    # mnist_neural_network(train_classes, test_classes, train_features,
-    #                       test_features, 100, 1.0, 1000)  # this takes 12 hours
+    mnist_neural_network(train_classes, test_classes, train_features,
+                          test_features, 100, 1.0, 1000)  # this takes 12 hours
 
-    # mnist_svm(train_classes, test_classes, train_features, test_features, 6000000, 0.1)
+    mnist_svm(train_classes, test_classes, train_features, test_features, 6000000, 0.1)
 
     mnist_perceptron_kernel(train_classes, test_classes,
                             train_features, test_features,
